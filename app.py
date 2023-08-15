@@ -1,41 +1,42 @@
-import streamlit as st
+from flask import Flask, render_template, request, send_from_directory, jsonify
+from flask_socketio import SocketIO, emit
 import os
 
-# Set the directory you want to manage
-BASE_DIR = './'
+app = Flask(__name__)
+socketio = SocketIO(app)
+
+BASE_DIR = '/storj-us'  # Make sure this directory exists or change to a valid directory
+
+@app.route('/')
+def index():
+    files = list_files(BASE_DIR)
+    return render_template('index.html', files=files)
+
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    uploaded_file = request.files['file']
+    if uploaded_file:
+        filepath = os.path.join(BASE_DIR, uploaded_file.filename)
+        uploaded_file.save(filepath)
+        socketio.emit('file_updated', {'message': f'{uploaded_file.filename} uploaded!'})
+        return jsonify(success=True, message=f"Uploaded {uploaded_file.filename} successfully!")
+    return jsonify(success=False, message="Failed to upload file.")
+
+@app.route('/delete/<filename>', methods=['POST'])
+def delete_file(filename):
+    filepath = os.path.join(BASE_DIR, filename)
+    if os.path.exists(filepath):
+        os.remove(filepath)
+        socketio.emit('file_updated', {'message': f'{filename} deleted!'})
+        return jsonify(success=True, message=f"Deleted {filename} successfully!")
+    return jsonify(success=False, message=f"File {filename} not found.")
+
+@app.route('/files/<filename>')
+def serve_file(filename):
+    return send_from_directory(BASE_DIR, filename)
 
 def list_files(startpath):
-    """List files and directories in the given path."""
-    files_list = []
-    for root, dirs, files in os.walk(startpath):
-        level = root.replace(startpath, '').count(os.sep)
-        indent = ' ' * 4 * (level)
-        files_list.append('{}{}/'.format(indent, os.path.basename(root)))
-        subindent = ' ' * 4 * (level + 1)
-        for f in files:
-            files_list.append('{}{}'.format(subindent, f))
-    return files_list
+    return [f for f in os.listdir(startpath) if os.path.isfile(os.path.join(startpath, f))]
 
-def main():
-    st.title("Simple File Manager with Streamlit")
-
-    # List files and directories
-    files = list_files(BASE_DIR)
-    for file in files:
-        st.text(file)
-
-    # Upload files
-    uploaded_file = st.file_uploader("Choose a file to upload", type=["txt", "csv", "png", "jpg"])
-    if uploaded_file:
-        with open(os.path.join(BASE_DIR, uploaded_file.name), "wb") as f:
-            f.write(uploaded_file.getvalue())
-        st.success(f"Uploaded {uploaded_file.name} successfully!")
-
-    # Delete files
-    selected_file = st.selectbox("Choose a file to delete", [f for f in os.listdir(BASE_DIR) if os.path.isfile(os.path.join(BASE_DIR, f))])
-    if st.button("Delete"):
-        os.remove(os.path.join(BASE_DIR, selected_file))
-        st.success(f"Deleted {selected_file} successfully!")
-
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    socketio.run(app, debug=False)
