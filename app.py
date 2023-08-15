@@ -1,42 +1,38 @@
-from flask import Flask, render_template, request, send_from_directory, jsonify
-from flask_socketio import SocketIO, emit
-import os
+# app.py
+from flask import Flask, jsonify, request
+from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS
 
 app = Flask(__name__)
-socketio = SocketIO(app)
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://username:password@localhost/dbname'
+db = SQLAlchemy()
+CORS(app)
 
-BASE_DIR = '/storj-us'  # Make sure this directory exists or change to a valid directory
+class File(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(80), unique=True, nullable=False)
+    type = db.Column(db.String(20), nullable=False)
+    content = db.Column(db.LargeBinary, nullable=True)
 
-@app.route('/')
-def index():
-    files = list_files(BASE_DIR)
-    return render_template('index.html', files=files)
+@app.route('/files', methods=['GET'])
+def get_files():
+    files = File.query.all()
+    return jsonify([f.serialize for f in files])
 
-@app.route('/upload', methods=['POST'])
+@app.route('/files', methods=['POST'])
 def upload_file():
-    uploaded_file = request.files['file']
-    if uploaded_file:
-        filepath = os.path.join(BASE_DIR, uploaded_file.filename)
-        uploaded_file.save(filepath)
-        socketio.emit('file_updated', {'message': f'{uploaded_file.filename} uploaded!'})
-        return jsonify(success=True, message=f"Uploaded {uploaded_file.filename} successfully!")
-    return jsonify(success=False, message="Failed to upload file.")
+    file = request.files['file']
+    new_file = File(name=file.filename, type=file.content_type, content=file.read())
+    db.session.add(new_file)
+    db.session.commit()
+    return jsonify(new_file.serialize)
 
-@app.route('/delete/<filename>', methods=['POST'])
-def delete_file(filename):
-    filepath = os.path.join(BASE_DIR, filename)
-    if os.path.exists(filepath):
-        os.remove(filepath)
-        socketio.emit('file_updated', {'message': f'{filename} deleted!'})
-        return jsonify(success=True, message=f"Deleted {filename} successfully!")
-    return jsonify(success=False, message=f"File {filename} not found.")
-
-@app.route('/files/<filename>')
-def serve_file(filename):
-    return send_from_directory(BASE_DIR, filename)
-
-def list_files(startpath):
-    return [f for f in os.listdir(startpath) if os.path.isfile(os.path.join(startpath, f))]
+@app.route('/files/<int:file_id>', methods=['DELETE'])
+def delete_file(file_id):
+    file = File.query.get(file_id)
+    db.session.delete(file)
+    db.session.commit()
+    return '', 204
 
 if __name__ == '__main__':
-    socketio.run(app, debug=False)
+    app.run(debug=True)
