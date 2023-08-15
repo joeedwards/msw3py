@@ -54,13 +54,29 @@ class File(db.Model):
     #content size is a string from our api
     content_size = db.Column(db.String(255), unique=True, nullable=False)
     status  = db.Column(db.String(255), unique=True, nullable=False)
-    content_folder_id = db.Column(db.Integer, db.ForeignKey('content_folder.id'))
+    content_folder_id = db.Column(db.Integer, db.ForeignKey('content_folders.id'))
     duplicate_source_id = db.Column(db.Integer, db.ForeignKey('contents.id'))
     #our api sets timestamps as null by default
     deleted_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, nullable=True)
     updated_at = db.Column(db.DateTime, nullable=True)
 
+    @property
+    def serialize(self):
+        """Return object data in easily serializable format"""
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'content_name': self.content_name,
+            'content_path': self.content_path,
+            'content_size': self.content_size,
+            'status': self.status,
+            'content_folder_id': self.content_folder_id,
+            'duplicate_source_id': self.duplicate_source_id,
+            'deleted_at': self.deleted_at,
+            'created_at': self.created_at,
+            'updated_at': self.updated_at
+        }
 
 @app.route('/files', methods=['GET'])
 def get_files():
