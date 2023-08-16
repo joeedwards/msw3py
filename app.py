@@ -1,5 +1,5 @@
 # app.py
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -98,5 +98,14 @@ def delete_file(file_id):
     db.session.commit()
     return '', 204
 
+
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve(path):
+    if path != "" and os.path.exists("frontend/dist/" + path):
+        return send_from_directory('frontend/dist', path)
+    else:
+        return send_from_directory('frontend/dist', 'index.html')
+    
 if __name__ == '__main__':
     app.run(debug=False)
