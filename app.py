@@ -102,10 +102,10 @@ def delete_file(file_id):
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve(path):
-    if path != "" and os.path.exists("frontend/dist/" + path):
-        return send_from_directory('frontend/dist', path)
+    if path != "" and os.path.exists("vue-fm/dist/" + path):
+        return send_from_directory('vue-fm/dist', path)
     else:
-        return send_from_directory('frontend/dist', 'index.html')
+        return send_from_directory('vue-fm/dist', 'index.html')
     
 if __name__ == '__main__':
     app.run(debug=False)

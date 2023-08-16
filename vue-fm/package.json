@@ -23,16 +23,19 @@
     "cropperjs": "^1.5.12",
     "mitt": "^3.0.0",
     "plyr": "^3.6.12",
-    "vue": "^3.2.25",
+    "vue": "^3.3.4",
     "vuex": "^4.0.2"
   },
   "devDependencies": {
+    "@vitejs/plugin-vue": "^3.2.0",
     "eslint": "^8.8.0",
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-config-prettier": "^8.3.0",
     "eslint-plugin-import": "^2.25.4",
     "eslint-plugin-prettier": "^4.0.0",
     "eslint-plugin-vue": "^9.2.0",
-    "sass": "^1.49.7"
+    "prettier": "^2.5.1",
+    "sass": "^1.49.7",
+    "vite": "^3.0.0"
   }
 }
