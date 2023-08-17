@@ -98,6 +98,17 @@ def delete_file(file_id):
     db.session.commit()
     return '', 204
 
+@app.route('/config')
+def get_config():
+    config = {
+        'region': 'AWS_DEFAULT_REGION',
+        'bucket': 'AWS_BUCKET',
+        'endpoint': 'AWS_ENDPOINT',
+        'visibility': 'public',
+        'root': '/storj-us',
+        'url': 'APP_URL/content',
+    }
+    return jsonify(config)
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')

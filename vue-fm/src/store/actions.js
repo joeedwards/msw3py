@@ -96,7 +96,7 @@ export default {
      * @param path
      */
     getLoadContent(context, { manager, disk, path }) {
-        GET.content(disk, path, 'http://localhost:5000/api/content').then((response) => {
+        GET.content(disk, path).then((response) => {
             if (response.data.result.status === 'success') {
                 context.commit(`${manager}/setDirectoryContent`, response.data);
             }
