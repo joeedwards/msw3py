@@ -112,23 +112,26 @@ export default {
      * @param manager
      */
     selectDisk({ state, commit, dispatch }, { disk, manager }) {
-        GET.selectDisk(disk).then((response) => {
-            // if disk exist => change disk
-            if (response.data.result.status === 'success') {
-                // set disk name
-                commit(`${manager}/setDisk`, disk);
+        fetchConfig(disk).then(config => {
+            // Use the config as needed
+            GET.selectDisk(disk).then((response) => {
+                // if disk exist => change disk
+                if (response.data.result.status === 'success') {
+                    // set disk name
+                    commit(`${manager}/setDisk`, disk);
 
-                // reset history
-                commit(`${manager}/resetHistory`);
+                    // reset history
+                    commit(`${manager}/resetHistory`);
 
-                // reinitialize tree if directories tree is shown
-                if (state.settings.windowsConfig === 2) {
-                    dispatch('tree/initTree', disk);
+                    // reinitialize tree if directories tree is shown
+                    if (state.settings.windowsConfig === 2) {
+                        dispatch('tree/initTree', disk);
+                    }
+
+                    // download content for root path
+                    dispatch(`${manager}/selectDirectory`, { path: null, history: false });
                 }
-
-                // download content for root path
-                dispatch(`${manager}/selectDirectory`, { path: null, history: false });
-            }
+            });
         });
     },
 
@@ -581,4 +584,7 @@ export default {
             );
         });
     },
+    fetchConfig(disk) {
+        return axios.get(`/config/${disk}`).then(response => response.data);
+    }
 };

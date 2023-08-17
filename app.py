@@ -98,9 +98,10 @@ def delete_file(file_id):
     db.session.commit()
     return '', 204
 
-@app.route('/config')
-def get_config():
+@app.route('/config/<disk>')
+def get_config(disk):
     config = {
+        'driver': 'local',
         'region': 'AWS_DEFAULT_REGION',
         'bucket': 'AWS_BUCKET',
         'endpoint': 'AWS_ENDPOINT',
