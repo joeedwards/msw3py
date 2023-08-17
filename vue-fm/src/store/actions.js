@@ -12,13 +12,19 @@ export default {
      */
     initializeApp({ state, commit, getters, dispatch }) {
         GET.initialize().then((response) => {
+            console.log(response.data.result)
+
             if (response.data.result.status === 'success') {
                 commit('settings/initSettings', response.data.config);
                 commit('setDisks', response.data.config.disks);
 
-                let leftDisk = response.data.config.leftDisk ? response.data.config.leftDisk : getters.diskList[0];
+                // Default to the "content" disk
+                let defaultDisk = 'content';
+                let leftDisk = response.data.config.leftDisk ? response.data.config.leftDisk : defaultDisk;
+                let rightDisk = response.data.config.rightDisk ? response.data.config.rightDisk : defaultDisk;
 
-                let rightDisk = response.data.config.rightDisk ? response.data.config.rightDisk : getters.diskList[0];
+                //let leftDisk = response.data.config.leftDisk ? response.data.config.leftDisk : getters.diskList[0];
+                //let rightDisk = response.data.config.rightDisk ? response.data.config.rightDisk : getters.diskList[0];
 
                 // paths
                 let leftPath = response.data.config.leftPath;

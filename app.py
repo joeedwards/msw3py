@@ -98,19 +98,6 @@ def delete_file(file_id):
     db.session.commit()
     return '', 204
 
-@app.route('/config/<disk>')
-def get_config(disk):
-    config = {
-        'driver': 'local',
-        'region': 'AWS_DEFAULT_REGION',
-        'bucket': 'AWS_BUCKET',
-        'endpoint': 'AWS_ENDPOINT',
-        'visibility': 'public',
-        'root': '/storj-us',
-        'url': 'APP_URL/content',
-    }
-    return jsonify(config)
-
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve(path):
@@ -120,4 +107,4 @@ def serve(path):
         return send_from_directory('vue-fm/dist', 'index.html')
     
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(debug=True)

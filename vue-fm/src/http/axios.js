@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const instance = axios.create({
-  baseURL: 'http://localhost:5000', // Change this to your Flask backend URL
+  baseURL: process.env.VUE_APP_API_URL || 'https://msus1.megashares.com', // Use the environment variable
   // other configurations
 });
 
