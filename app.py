@@ -4,6 +4,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from dotenv import load_dotenv
 import os
+from filemanager import FileManager
+from config import ConfigRepository
 
 app = Flask(__name__)
 load_dotenv()
@@ -78,6 +80,31 @@ class File(db.Model):
             'updated_at': self.updated_at
         }
 
+
+# Initialize FileManager
+config_repository = ConfigRepository() # You would define this class
+file_manager = FileManager(config_repository)
+
+@app.route('/tree', methods=['GET'])
+def tree():
+    disk = request.args.get('disk')
+    path = request.args.get('path')
+    return jsonify(file_manager.tree(disk, path))
+
+@app.route('/upload', methods=['POST'])
+def upload():
+    disk = request.form['disk']
+    path = request.form['path']
+    files = request.files.getlist('files')
+    overwrite = request.form.get('overwrite', False)
+    return jsonify(file_manager.upload(disk, path, files, overwrite))
+
+@app.route('/delete', methods=['DELETE'])
+def delete():
+    disk = request.form['disk']
+    items = request.form['items']
+    return jsonify(file_manager.delete(disk, items))
+
 @app.route('/files', methods=['GET'])
 def get_files():
     files = File.query.all()
@@ -98,6 +125,24 @@ def delete_file(file_id):
     db.session.commit()
     return '', 204
 
+@app.route('/initialize', methods=['GET'])
+def initialize():
+    print ("initialize")
+    config = {
+        'disks': [
+            {'name': 'disk1', 'path': '/path/to/disk1'}, 
+            {'name': 'disk2', 'path': '/path/to/disk2'}
+        ],
+        'settings': {
+            'theme': 'light'
+        }
+    }
+    
+    return jsonify({
+        'status': 'success', 
+        'config': config
+    })
+
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve(path):
@@ -105,6 +150,6 @@ def serve(path):
         return send_from_directory('vue-fm/dist', path)
     else:
         return send_from_directory('vue-fm/dist', 'index.html')
-    
+
 if __name__ == '__main__':
     app.run(debug=True)
