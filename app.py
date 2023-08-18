@@ -127,21 +127,30 @@ def delete_file(file_id):
 
 @app.route('/initialize', methods=['GET'])
 def initialize():
-    print ("initialize")
-    config = {
-        'disks': [
-            {'name': 'disk1', 'path': '/path/to/disk1'}, 
-            {'name': 'disk2', 'path': '/path/to/disk2'}
-        ],
-        'settings': {
-            'theme': 'light'
+    # Fetch the disk configuration from ConfigRepository
+    left_disk = config_repository.get_left_disk()
+    right_disk = config_repository.get_right_disk()
+    
+    # Adjust the disk configuration
+    disk_config = {
+        'name': left_disk if left_disk else 'content',
+        'path': '/storage'
+    }
+    
+    # Construct the response structure
+    response_data = {
+        'result': {
+            'status': 'success'
+        },
+        'config': {
+            'disks': [disk_config],
+            'settings': {
+                'theme': 'light'
+            }
         }
     }
     
-    return jsonify({
-        'status': 'success', 
-        'config': config
-    })
+    return jsonify(response_data)
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
