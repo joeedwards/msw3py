@@ -1,11 +1,13 @@
 # app.py
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory, abort
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from dotenv import load_dotenv
-import os
 from filemanager import FileManager
 from config import ConfigRepository
+from web3 import Web3
+import os, hashlib, requests
+
 
 app = Flask(__name__)
 load_dotenv()
@@ -18,6 +20,45 @@ DB_NAME = os.getenv("DB_NAME")
 app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_NAME}?ssl_mode=DISABLED'
 db = SQLAlchemy(app)
 CORS(app)
+ALCHEMY_API_KEY = os.getenv("ALCHEMY_API_KEY")
+ALCHEMY_API_NFT_URL = os.getenv("ALCHEMY_API_NFT_URL")
+ALCHEMY_API_URL = os.getenv("ALCHEMY_API_URL")
+w3 = Web3(Web3.HTTPProvider(ALCHEMY_API_URL))
+challenges = {}
+
+def generate_challenge(wallet_address):
+    challenge = hashlib.sha256(os.urandom(32)).hexdigest()
+    challenges[wallet_address] = challenge
+    return challenge
+
+class NFTMembership(db.Model):
+  __tablename__ = 'nft_memberships'
+  id = db.Column(db.Integer, primary_key=True) 
+  contract_address = db.Column(db.String(42)) # Ethereum addresses are 42 chars 
+  # Other columns like created_at etc
+
+
+def verify_nft_ownership(wallet_address):
+    # Construct the Alchemy API endpoint
+    #endpoint = f"https://eth-mainnet.alchemyapi.io/v2/{ALCHEMY_API_KEY}"
+    #endpoint = f"{ALCHEMY_API_NFT_URL}/{ALCHEMY_API_KEY}"
+    endpoint = f"{ALCHEMY_API_NFT_URL}/{ALCHEMY_API_KEY}/getNFTs"
+    
+    # Define the payload for the request (You might need to adjust this based on the NFT contract details)
+    approved_contracts = NFTMembership.query.with_entities(NFTMembership.contract_address).all()
+ 
+    payload = {
+    "owner": wallet_address,
+    "contractAddresses": [contract[0] for contract in approved_contracts],
+    }    
+    
+    response = requests.post(endpoint, json=payload)
+    data = response.json()
+    
+    # Check if the user has the NFT (This is a basic check and might need adjustments)
+    if data.get("result") and int(data["result"], 16) > 0:
+        return True
+    return False
 
 # users class model
 class User(db.Model):
@@ -129,7 +170,7 @@ def delete_file(file_id):
 def initialize():
     # Fetch the disk configuration from ConfigRepository
     left_disk = config_repository.get_left_disk()
-    right_disk = config_repository.get_right_disk()
+    #right_disk = config_repository.get_right_disk()
     
     # Adjust the disk configuration
     disk_config = {
@@ -159,6 +200,50 @@ def serve(path):
         return send_from_directory('vue-fm/dist', path)
     else:
         return send_from_directory('vue-fm/dist', 'index.html')
+
+@app.route('/request_challenge', methods=['POST'])
+def request_challenge():
+    wallet_address = request.json.get('wallet_address')
+    if not wallet_address:
+        return jsonify({"error": "Wallet address required"}), 400
+    
+    challenge = generate_challenge(wallet_address)
+    return jsonify({"challenge": challenge})
+        
+@app.route('/verify_signature', methods=['POST'])
+def verify_signature():
+    wallet_address = request.json.get('wallet_address')
+    signature = request.json.get('signature')
+    
+    if not wallet_address or not signature:
+        return jsonify({"error": "Wallet address and signature required"}), 400
+    
+    challenge = challenges.get(wallet_address)
+    if not challenge:
+        return jsonify({"error": "Invalid challenge"}), 400
+    
+    # Verify the signature using web3
+    message_hash = w3.solidityKeccak(['string'], [challenge])
+    recovered_address = w3.eth.account.recoverHash(message_hash, signature=signature)
+    
+    if recovered_address.lower() == wallet_address.lower():
+        # Further check if the wallet has the NFT
+        if verify_nft_ownership(wallet_address):
+            return jsonify({"status": "success"})
+        else:
+            return jsonify({"error": "No matching NFT found in the wallet"}), 403
+    else:
+        return jsonify({"error": "Invalid signature"}), 403
+
+        
+@app.route('/request_challenge', methods=['POST'])
+def request_challenge():
+    wallet_address = request.json.get('wallet_address')
+    if not wallet_address:
+        return jsonify({"error": "Wallet address required"}), 400
+    
+    challenge = generate_challenge(wallet_address)
+    return jsonify({"challenge": challenge})
 
 if __name__ == '__main__':
     app.run(debug=True)
