@@ -200,16 +200,7 @@ def serve(path):
         return send_from_directory('vue-fm/dist', path)
     else:
         return send_from_directory('vue-fm/dist', 'index.html')
-
-@app.route('/request_challenge', methods=['POST'])
-def request_challenge():
-    wallet_address = request.json.get('wallet_address')
-    if not wallet_address:
-        return jsonify({"error": "Wallet address required"}), 400
-    
-    challenge = generate_challenge(wallet_address)
-    return jsonify({"challenge": challenge})
-        
+       
 @app.route('/verify_signature', methods=['POST'])
 def verify_signature():
     wallet_address = request.json.get('wallet_address')
